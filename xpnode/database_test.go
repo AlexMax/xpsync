@@ -21,20 +21,20 @@ func TestGet(t *testing.T) {
 
 	err = db.Import("../fixture/zanxp.sql")
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	row, err := db.Get("alexmax")
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 	assert.Equal(t, "alexmax", row.Name, "Should return proper row name")
-	assert.Equal(t, int32(359450), row.Experience, "Should return proper row experience")
-	assert.Equal(t, 1459903084.82901, row.Timestamp, "Should return proper row timestamp")
+	assert.Equal(t, StringInt32(359450), row.Experience, "Should return proper row experience")
+	assert.Equal(t, StringFloat64(1459903084.82901), row.Timestamp, "Should return proper row timestamp")
 
 	row, err = db.Get("anonymous")
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 	assert.Nil(t, row, "Should be nil")
 }

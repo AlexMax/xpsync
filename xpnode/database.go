@@ -13,26 +13,33 @@ type Database struct {
 	db *sqlx.DB
 }
 
-type Experience struct {
-	Name       string
-	Experience int32
-	Timestamp  float64
+// A Float64 that is automatically converted to and from a string.
+type StringInt32 int32
+
+// Scans a string into an int32.
+func (val *StringInt32) Scan(value interface{}) error {
+	result, err := strconv.ParseInt(string(value.([]uint8)), 10, 32)
+	if err != nil {
+		return err
+	}
+	*val = StringInt32(result)
+	return nil
 }
 
-const updateQuery string = `
-INSERT OR REPLACE
-INTO Zandronum(Namespace, KeyName, Value, Timestamp)
-VALUES("zanxp", :Name,
-	CASE WHEN (SELECT Value FROM Zandronum WHERE Namespace = "zanxp" AND KeyName = :Name) > :Experience THEN
-	(SELECT Value FROM Zandronum WHERE Namespace = "zanxp" AND KeyName = :Name)
-	ELSE
-		:Experience
-	END,
-	COALESCE(
-		(SELECT Timestamp FROM Zandronum WHERE Namespace = "zanxp" AND KeyName = :Name),
-		(SELECT (julianday('now') - 2440587.5) * 86400.0)));
-`
+// A Float64 that is automatically converted to and from a string.
+type StringFloat64 float64
 
+// Scans a string into an float64.
+func (val *StringFloat64) Scan(value interface{}) error {
+	result, err := strconv.ParseFloat(string(value.([]uint8)), 64)
+	if err != nil {
+		return err
+	}
+	*val = StringFloat64(result)
+	return nil
+}
+
+// Create a new database instance.
 func NewDatabase(filename string) (database *Database, err error) {
 	database = &Database{}
 
@@ -61,34 +68,24 @@ func (database *Database) Import(paths ...string) (err error) {
 	return
 }
 
+// A single row of a user's experience points.
+type Experience struct {
+	Name       string        `db:"KeyName"`
+	Experience StringInt32   `db:"Value"`
+	Timestamp  StringFloat64 `db:"Timestamp"`
+}
+
+// Retrieve a single row from the database by username.
 func (database *Database) Get(name string) (xp *Experience, err error) {
 	xp = &Experience{}
 
-	var result struct {
-		KeyName   string `db:"KeyName"`
-		Value     string `db:"Value"`
-		Timestamp string `db:"Timestamp"`
-	}
-
 	row := database.db.QueryRowx(`SELECT KeyName, Value, Timestamp FROM Zandronum WHERE Namespace = "zanxp" AND KeyName = ? LIMIT 1`, name)
-	err = row.StructScan(&result)
+	err = row.StructScan(xp)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
-		return
+		return nil, err
 	}
 
-	// Convert result to Experience struct
-	xp.Name = result.KeyName
-	experience, err := strconv.ParseInt(result.Value, 10, 32)
-	if err != nil {
-		return
-	}
-	xp.Experience = int32(experience)
-	timestamp, err := strconv.ParseFloat(result.Timestamp, 64)
-	if err != nil {
-		return
-	}
-	xp.Timestamp = timestamp
 	return
 }
