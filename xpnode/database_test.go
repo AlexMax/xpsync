@@ -38,3 +38,21 @@ func TestGet(t *testing.T) {
 	}
 	assert.Nil(t, row, "Should be nil")
 }
+
+func TestGetSince(t *testing.T) {
+	db, err := NewDatabase(":memory:")
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	err = db.Import("../fixture/zanxp.sql")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	rows, err := db.GetSince(1459903084.82901)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assert.Equal(t, 2, len(rows), "Should return two values")
+}

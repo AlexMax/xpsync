@@ -89,3 +89,22 @@ func (database *Database) Get(name string) (xp *Experience, err error) {
 
 	return
 }
+
+// Retrieve all rows from the database since a certain timestamp.
+func (database *Database) GetSince(timestamp float64) (xps []Experience, err error) {
+	rows, err := database.db.Queryx(`SELECT KeyName, Value, Timestamp FROM Zandronum WHERE Timestamp > ?`, timestamp)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var xp Experience
+		err = rows.StructScan(&xp)
+		if err != nil {
+			return
+		}
+		xps = append(xps, xp)
+	}
+	return
+}
