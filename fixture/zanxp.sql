@@ -1,6 +1,5 @@
 PRAGMA foreign_keys=OFF;
 BEGIN TRANSACTION;
-CREATE TABLE Zandronum(Namespace text, KeyName text, Value text, Timestamp text, PRIMARY KEY (Namespace, KeyName));
 INSERT INTO "Zandronum" VALUES('zanxp','alexmax','359450','1459903084.82901');
 INSERT INTO "Zandronum" VALUES('zanxp','thefatwilly','618800','1458967410.06899');
 INSERT INTO "Zandronum" VALUES('zanxp','edd','293200','1458872136.47299');

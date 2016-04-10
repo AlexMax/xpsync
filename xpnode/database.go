@@ -48,6 +48,11 @@ func NewDatabase(filename string) (database *Database, err error) {
 		return
 	}
 
+	_, err = database.db.Exec(`CREATE TABLE IF NOT EXISTS Zandronum(Namespace text, KeyName text, Value text, Timestamp text, PRIMARY KEY (Namespace, KeyName));`)
+	if err != nil {
+		return
+	}
+
 	return
 }
 
