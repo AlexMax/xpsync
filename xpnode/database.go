@@ -108,3 +108,22 @@ func (database *Database) GetSince(timestamp float64) (xps []Experience, err err
 	}
 	return
 }
+
+func (database *Database) Update(xp Experience) (err error) {
+	// Atomically update any existing field we have in the database
+	_, err = database.db.Exec(`
+		INSERT OR REPLACE
+		INTO Zandronum (Namespace, KeyName, Value, Timestamp)
+		VALUES("zanxp", ?1,
+		CASE WHEN (SELECT Timestamp FROM Zandronum WHERE Namespace = "zanxp" AND KeyName = ?1) > ?3 THEN
+			(SELECT Value FROM Zandronum WHERE Namespace = "zanxp" AND KeyName = ?1)
+		ELSE
+			?2
+		END,
+		CASE WHEN (SELECT Timestamp FROM Zandronum WHERE Namespace = "zanxp" AND KeyName = ?1) > ?3 THEN
+			(SELECT Timestamp FROM Zandronum WHERE Namespace = "zanxp" AND KeyName = ?1)
+		ELSE
+			?3
+		END)`, xp.Name, xp.Experience, xp.Timestamp)
+	return
+}

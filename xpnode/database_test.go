@@ -56,3 +56,84 @@ func TestGetSince(t *testing.T) {
 		assert.Equal(t, 0, len(rows), "Should return no values")
 	}
 }
+
+func TestUpdateNew(t *testing.T) {
+	db, err := NewDatabase(":memory:")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	err = db.Import("../fixture/zanxp.sql")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	// Brand new row
+	err = db.Update(Experience{
+		Name:       "anonymous",
+		Experience: 5000,
+		Timestamp:  1460320613.0,
+	})
+	if assert.NoError(t, err) {
+		row, err := db.Get("anonymous")
+		if assert.NoError(t, err) {
+			assert.Equal(t, "anonymous", row.Name)
+			assert.Equal(t, StringInt32(5000), row.Experience)
+			assert.Equal(t, StringFloat64(1460320613.0), row.Timestamp)
+		}
+	}
+}
+
+func TestUpdateExistingNewer(t *testing.T) {
+	db, err := NewDatabase(":memory:")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	err = db.Import("../fixture/zanxp.sql")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	// Update newer existing row
+	err = db.Update(Experience{
+		Name:       "alexmax",
+		Experience: 5000,
+		Timestamp:  1460320613.0,
+	})
+	if assert.NoError(t, err) {
+		row, err := db.Get("alexmax")
+		if assert.NoError(t, err) {
+			assert.Equal(t, "alexmax", row.Name)
+			assert.Equal(t, StringInt32(5000), row.Experience)
+			assert.Equal(t, StringFloat64(1460320613.0), row.Timestamp)
+		}
+	}
+}
+
+func TestUpdateExistingOlder(t *testing.T) {
+	db, err := NewDatabase(":memory:")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	err = db.Import("../fixture/zanxp.sql")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	// Don't update older existing row
+	err = db.Update(Experience{
+		Name:       "alexmax",
+		Experience: 5000,
+		Timestamp:  1360320613.0,
+	})
+	if assert.NoError(t, err) {
+		row, err := db.Get("alexmax")
+		if assert.NoError(t, err) {
+			assert.Equal(t, "alexmax", row.Name)
+			assert.Equal(t, StringInt32(359450), row.Experience)
+			assert.Equal(t, StringFloat64(1459903084.82901), row.Timestamp)
+		}
+	}
+}
