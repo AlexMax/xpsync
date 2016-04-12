@@ -35,6 +35,28 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestGetServerTimestamp(t *testing.T) {
+	db, err := NewDatabase(":memory:")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	err = db.Import("../fixture/zanxp.sql")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	servertime, err := db.GetServerTimestamp("alexmax")
+	if assert.NoError(t, err) {
+		assert.Equal(t, StringFloat64(1459903084.82901), *servertime)
+	}
+
+	servertime, err = db.GetServerTimestamp("anonymous")
+	if assert.NoError(t, err) {
+		assert.Nil(t, servertime)
+	}
+}
+
 func TestGetSince(t *testing.T) {
 	db, err := NewDatabase(":memory:")
 	if !assert.NoError(t, err) {
@@ -46,7 +68,7 @@ func TestGetSince(t *testing.T) {
 		t.FailNow()
 	}
 
-	rows, err := db.GetSince(1459903084.82901)
+	rows, err := db.GetSince(1458872136.47299)
 	if assert.NoError(t, err) {
 		assert.Equal(t, 2, len(rows), "Should return two values")
 	}
@@ -54,6 +76,23 @@ func TestGetSince(t *testing.T) {
 	rows, err = db.GetSince(2000000000)
 	if assert.NoError(t, err) {
 		assert.Equal(t, 0, len(rows), "Should return no values")
+	}
+}
+
+func TestGetChanged(t *testing.T) {
+	db, err := NewDatabase(":memory:")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	err = db.Import("../fixture/zanxp.sql")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	rows, err := db.GetChanged()
+	if assert.NoError(t, err) {
+		assert.Equal(t, 3, len(rows), "Should return three values")
 	}
 }
 
@@ -74,14 +113,25 @@ func TestUpdateNew(t *testing.T) {
 		Experience: 5000,
 		Timestamp:  1460320613.0,
 	})
-	if assert.NoError(t, err) {
-		row, err := db.Get("anonymous")
-		if assert.NoError(t, err) {
-			assert.Equal(t, "anonymous", row.Name)
-			assert.Equal(t, StringInt32(5000), row.Experience)
-			assert.Equal(t, StringFloat64(1460320613.0), row.Timestamp)
-		}
+	if !assert.NoError(t, err) {
+		t.FailNow()
 	}
+
+	row, err := db.Get("anonymous")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	assert.Equal(t, "anonymous", row.Name)
+	assert.Equal(t, StringInt32(5000), row.Experience)
+	assert.Equal(t, StringFloat64(1460320613.0), row.Timestamp)
+
+	servertime, err := db.GetServerTimestamp("anonymous")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	assert.Equal(t, StringFloat64(1460320613.0), *servertime)
 }
 
 func TestUpdateExistingNewer(t *testing.T) {
@@ -101,14 +151,25 @@ func TestUpdateExistingNewer(t *testing.T) {
 		Experience: 5000,
 		Timestamp:  1460320613.0,
 	})
-	if assert.NoError(t, err) {
-		row, err := db.Get("alexmax")
-		if assert.NoError(t, err) {
-			assert.Equal(t, "alexmax", row.Name)
-			assert.Equal(t, StringInt32(5000), row.Experience)
-			assert.Equal(t, StringFloat64(1460320613.0), row.Timestamp)
-		}
+	if !assert.NoError(t, err) {
+		t.FailNow()
 	}
+
+	row, err := db.Get("alexmax")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	assert.Equal(t, "alexmax", row.Name)
+	assert.Equal(t, StringInt32(5000), row.Experience)
+	assert.Equal(t, StringFloat64(1460320613.0), row.Timestamp)
+
+	servertime, err := db.GetServerTimestamp("alexmax")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	assert.Equal(t, StringFloat64(1460320613.0), *servertime)
 }
 
 func TestUpdateExistingOlder(t *testing.T) {
@@ -128,12 +189,23 @@ func TestUpdateExistingOlder(t *testing.T) {
 		Experience: 5000,
 		Timestamp:  1360320613.0,
 	})
-	if assert.NoError(t, err) {
-		row, err := db.Get("alexmax")
-		if assert.NoError(t, err) {
-			assert.Equal(t, "alexmax", row.Name)
-			assert.Equal(t, StringInt32(359450), row.Experience)
-			assert.Equal(t, StringFloat64(1459903084.82901), row.Timestamp)
-		}
+	if !assert.NoError(t, err) {
+		t.FailNow()
 	}
+
+	row, err := db.Get("alexmax")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	assert.Equal(t, "alexmax", row.Name)
+	assert.Equal(t, StringInt32(359450), row.Experience)
+	assert.Equal(t, StringFloat64(1459903084.82901), row.Timestamp)
+
+	servertime, err := db.GetServerTimestamp("alexmax")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	assert.Equal(t, StringFloat64(1459903084.82901), *servertime)
 }
