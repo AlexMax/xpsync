@@ -19,6 +19,11 @@ func TestFullUpdate(t *testing.T) {
 		t.FailNow()
 	}
 
+	err = app.db.Import("../fixture/zanxp.sql")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
 	go app.ListenAndServe()
 
 	time.Sleep(time.Second)

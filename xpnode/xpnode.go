@@ -9,23 +9,29 @@ import (
 type App struct {
 	db     *Database
 	server *rpc.Server
+	msg    *Messages
 }
 
 // Create new App
 func NewApp() (app *App, err error) {
 	app = &App{}
 
-	filename := "zanxp.db"
+	filename := ":memory:"
 
+	// Initialize Database
 	app.db, err = NewDatabase(filename)
 	if err != nil {
 		return
 	}
 
+	// Initialize RPC server
 	app.server = rpc.NewServer()
 
-	messages := new(Messages)
-	app.server.Register(messages)
+	// Initialize RPC messages
+	app.msg = &Messages{
+		app: app,
+	}
+	app.server.Register(app.msg)
 
 	return
 }
@@ -61,8 +67,11 @@ func main() {
 	log.Fatal(app.ListenAndServe())
 }
 
-type Messages int
+type Messages struct {
+	app *App
+}
 
-func (t *Messages) FullUpdate(_ struct{}, reply *[]Experience) (err error) {
+func (m *Messages) FullUpdate(_ struct{}, reply *[]Experience) (err error) {
+	*reply, err = m.app.db.GetSince(0)
 	return
 }
