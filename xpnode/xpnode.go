@@ -72,6 +72,6 @@ type Messages struct {
 }
 
 func (m *Messages) FullUpdate(_ struct{}, reply *[]Experience) (err error) {
-	*reply, err = m.app.db.GetSince(0)
+	*reply, err = m.app.db.GetAll()
 	return
 }

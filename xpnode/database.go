@@ -117,9 +117,9 @@ func (database *Database) GetServerTimestamp(name string) (timestamp *StringFloa
 	return
 }
 
-// Retrieve all rows from the database since a certain timestamp.
-func (database *Database) GetSince(timestamp float64) (xps []Experience, err error) {
-	rows, err := database.db.Queryx(`SELECT KeyName, Value, Timestamp FROM Zandronum WHERE Timestamp > ?`, timestamp)
+// Retrieve all rows from the database.
+func (database *Database) GetAll() (xps []Experience, err error) {
+	rows, err := database.db.Queryx(`SELECT KeyName, Value, Timestamp FROM Zandronum`)
 	if err != nil {
 		return
 	}

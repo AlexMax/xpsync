@@ -57,7 +57,7 @@ func TestGetServerTimestamp(t *testing.T) {
 	}
 }
 
-func TestGetSince(t *testing.T) {
+func TestGetAll(t *testing.T) {
 	db, err := NewDatabase(":memory:")
 	if !assert.NoError(t, err) {
 		t.FailNow()
@@ -68,14 +68,9 @@ func TestGetSince(t *testing.T) {
 		t.FailNow()
 	}
 
-	rows, err := db.GetSince(1458872136.47299)
+	rows, err := db.GetAll()
 	if assert.NoError(t, err) {
-		assert.Equal(t, 2, len(rows), "Should return two values")
-	}
-
-	rows, err = db.GetSince(2000000000)
-	if assert.NoError(t, err) {
-		assert.Equal(t, 0, len(rows), "Should return no values")
+		assert.Equal(t, 5, len(rows), "Should return two values")
 	}
 }
 
