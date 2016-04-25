@@ -162,14 +162,43 @@ func (database *Database) GetChanged() (xps []Experience, err error) {
 	return
 }
 
-// Atomically update an existing experience field if the data we have is
-// newer than existing data.
+func (database *Database) UpdateMany(xps []Experience) (err error) {
+	database.db.Begin()
+
+	tx, err := database.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	for _, xp := range xps {
+		err = database.update(tx, xp)
+		if err != nil {
+			return
+		}
+	}
+
+	err = tx.Commit()
+	return
+}
+
 func (database *Database) Update(xp Experience) (err error) {
 	tx, err := database.db.Beginx()
 	if err != nil {
 		return err
 	}
 
+	err = database.update(tx, xp)
+	if err != nil {
+		return
+	}
+
+	err = tx.Commit()
+	return
+}
+
+// Atomically update an existing experience field if the data we have is
+// newer than existing data.
+func (database *Database) update(tx *sqlx.Tx, xp Experience) (err error) {
 	// Update the actual experience field, if newer.
 	_, err = tx.Exec(`
 		INSERT OR REPLACE
@@ -203,6 +232,5 @@ func (database *Database) Update(xp Experience) (err error) {
 		return
 	}
 
-	err = tx.Commit()
 	return
 }

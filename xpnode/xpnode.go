@@ -71,7 +71,19 @@ type Messages struct {
 	app *App
 }
 
+// Send a complete list of experience data to client.
 func (m *Messages) FullUpdate(_ struct{}, reply *[]Experience) (err error) {
 	*reply, err = m.app.db.GetAll()
+	return
+}
+
+// Update local data based on data from client.
+func (m *Messages) Push(xps []Experience, reply *bool) (err error) {
+	err = m.app.db.UpdateMany(xps)
+	if err != nil {
+		*reply = false
+	} else {
+		*reply = true
+	}
 	return
 }

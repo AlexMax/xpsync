@@ -26,7 +26,7 @@ func TestFullUpdate(t *testing.T) {
 
 	go app.ListenAndServe()
 
-	time.Sleep(time.Second)
+	time.Sleep(200 * time.Millisecond)
 
 	client, err := rpc.Dial("tcp", "localhost:9876")
 	if !assert.NoError(t, err) {
@@ -41,3 +41,33 @@ func TestFullUpdate(t *testing.T) {
 	}
 	assert.Equal(t, 5, len(xps))
 }
+
+/*
+func TestPush(t *testing.T) {
+	app, err := NewApp()
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	err = app.db.Import("../fixture/zanxp.sql")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	go app.ListenAndServe()
+
+	time.Sleep(200 * time.Millisecond)
+
+	client, err := rpc.Dial("tcp", "localhost:9876")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	var xps []Experience
+	var success bool
+	err = client.Call("Messages.Push", xps, &success)
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+	assert.Equal(t, true, success)
+}*/
