@@ -4,12 +4,15 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+	"time"
 )
 
 type App struct {
-	db     *Database
-	server *rpc.Server
-	msg    *Messages
+	Error    chan error
+	shutdown chan bool
+	db       *Database
+	server   *rpc.Server
+	msg      *Messages
 }
 
 // Create new App
@@ -33,29 +36,60 @@ func NewApp() (app *App, err error) {
 	}
 	app.server.Register(app.msg)
 
+	// Initialize channels
+	app.Error = make(chan error)
+	app.shutdown = make(chan bool)
+
 	return
 }
 
-// Serve application
-func (app *App) ListenAndServe() (err error) {
+// Start serving application
+func (app *App) Start() (err error) {
 	listener, err := net.Listen("tcp", ":9876")
 	if err != nil {
 		return
 	}
-	defer listener.Close()
+	err = listener.(*net.TCPListener).SetDeadline(time.Now().Add(200 * time.Millisecond))
+	if err != nil {
+		return
+	}
 
 	log.Printf("Now listening on %s", listener.Addr().String())
 
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			return err
-		}
+	go func() {
+		defer listener.Close()
 
-		app.server.ServeConn(conn)
-	}
+		for {
+			select {
+			case <-app.shutdown:
+				return
+			default:
+				// Do nothing
+			}
+
+			conn, err := listener.Accept()
+			if err != nil {
+				opErr, ok := err.(*net.OpError)
+				if ok && opErr.Timeout() {
+					continue
+				}
+
+				app.Error <- err
+				return
+			}
+
+			app.server.ServeConn(conn)
+		}
+	}()
 
 	return
+}
+
+func (app *App) Shutdown() {
+	app.shutdown <- true
+
+	close(app.shutdown)
+	close(app.Error)
 }
 
 func main() {
@@ -64,7 +98,13 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	log.Fatal(app.ListenAndServe())
+	err = app.Start()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	defer app.Shutdown()
+
+	log.Fatal(<-app.Error)
 }
 
 type Messages struct {

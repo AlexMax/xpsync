@@ -3,7 +3,6 @@ package main
 import (
 	"net/rpc"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,14 +23,17 @@ func TestFullUpdate(t *testing.T) {
 		t.FailNow()
 	}
 
-	go app.ListenAndServe()
-
-	time.Sleep(200 * time.Millisecond)
+	err = app.Start()
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+	defer app.Shutdown()
 
 	client, err := rpc.Dial("tcp", "localhost:9876")
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}
+	defer client.Close()
 
 	var nothing struct{}
 	var xps []Experience
@@ -42,7 +44,6 @@ func TestFullUpdate(t *testing.T) {
 	assert.Equal(t, 5, len(xps))
 }
 
-/*
 func TestPush(t *testing.T) {
 	app, err := NewApp()
 	if !assert.NoError(t, err) {
@@ -54,14 +55,17 @@ func TestPush(t *testing.T) {
 		t.FailNow()
 	}
 
-	go app.ListenAndServe()
-
-	time.Sleep(200 * time.Millisecond)
+	err = app.Start()
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+	defer app.Shutdown()
 
 	client, err := rpc.Dial("tcp", "localhost:9876")
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}
+	defer client.Close()
 
 	var xps []Experience
 	var success bool
@@ -70,4 +74,4 @@ func TestPush(t *testing.T) {
 		t.FailNow()
 	}
 	assert.Equal(t, true, success)
-}*/
+}
