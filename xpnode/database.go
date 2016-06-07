@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"io/ioutil"
+	"log"
 	"strconv"
 
 	"github.com/jmoiron/sqlx"
@@ -163,6 +164,9 @@ func (database *Database) GetChanged() (xps []Experience, err error) {
 }
 
 func (database *Database) UpdateMany(xps []Experience) (err error) {
+	_, err = database.db.Query("SELECT * FROM Zandronum")
+	log.Printf("UpdateMany: %p %+v", database.db, err)
+
 	database.db.Begin()
 
 	tx, err := database.db.Beginx()

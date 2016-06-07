@@ -1,10 +1,10 @@
 package main
 
 import (
-	"net/rpc"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/valyala/gorpc"
 )
 
 func TestNewApp(t *testing.T) {
@@ -12,13 +12,13 @@ func TestNewApp(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestFullUpdate(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	app, err := NewApp()
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}
 
-	err = app.db.Import("../fixture/zanxp.sql")
+	err = app.service.db.Import("../fixture/zanxp.sql")
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}
@@ -27,51 +27,25 @@ func TestFullUpdate(t *testing.T) {
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}
-	defer app.Shutdown()
+	defer app.Stop()
 
-	client, err := rpc.Dial("tcp", "localhost:9876")
+	client := gorpc.NewTCPClient("localhost:9876")
+	client.Start()
+	defer client.Stop()
+
+	dis := gorpc.NewDispatcher()
+	dis.AddService("XPNodeService", app.server)
+	disClient := dis.NewServiceClient("XPNodeService", client)
+
+	// FIXME: This appears to work...
+	var xps = []Experience{
+		{Name: "AlexMax", Experience: 360000, Timestamp: 1500000000.0},
+	}
+	err = app.service.db.UpdateMany(xps)
+
+	// ...but this fails!
+	_, err = disClient.Call("Update", xps)
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}
-	defer client.Close()
-
-	var nothing struct{}
-	var xps []Experience
-	err = client.Call("Messages.FullUpdate", nothing, &xps)
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-	assert.Equal(t, 5, len(xps))
-}
-
-func TestPush(t *testing.T) {
-	app, err := NewApp()
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-
-	err = app.db.Import("../fixture/zanxp.sql")
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-
-	err = app.Start()
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-	defer app.Shutdown()
-
-	client, err := rpc.Dial("tcp", "localhost:9876")
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-	defer client.Close()
-
-	var xps []Experience
-	var success bool
-	err = client.Call("Messages.Push", xps, &success)
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-	assert.Equal(t, true, success)
 }

@@ -2,128 +2,85 @@ package main
 
 import (
 	"log"
-	"net"
-	"net/rpc"
-	"time"
+
+	"github.com/valyala/gorpc"
 )
 
-type App struct {
-	Error    chan error
-	shutdown chan bool
-	db       *Database
-	server   *rpc.Server
-	msg      *Messages
+type XPNodeService struct {
+	db *Database
 }
 
-// Create new App
+func NewXPNodeService() (service *XPNodeService, err error) {
+	service = &XPNodeService{}
+
+	// Register types for service
+	gorpc.RegisterType(&Experience{})
+
+	// Initialize Database
+	service.db, err = NewDatabase(":memory:")
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+// Update experience on node from master node.
+func (service *XPNodeService) Update(xps []Experience) (err error) {
+	err = service.db.UpdateMany(xps)
+	return
+}
+
+type App struct {
+	server  *gorpc.Server
+	service *XPNodeService
+}
+
 func NewApp() (app *App, err error) {
 	app = &App{}
 
-	filename := ":memory:"
-
-	// Initialize Database
-	app.db, err = NewDatabase(filename)
+	// Initialize Service
+	app.service, err = NewXPNodeService()
 	if err != nil {
 		return
 	}
 
-	// Initialize RPC server
-	app.server = rpc.NewServer()
-
-	// Initialize RPC messages
-	app.msg = &Messages{
-		app: app,
-	}
-	app.server.Register(app.msg)
-
-	// Initialize channels
-	app.Error = make(chan error)
-	app.shutdown = make(chan bool)
+	// Initialize Server
+	dis := gorpc.NewDispatcher()
+	dis.AddService("XPNodeService", app.service)
+	app.server = gorpc.NewTCPServer(":9876", dis.NewHandlerFunc())
 
 	return
 }
 
-// Start serving application
+// Start the server
 func (app *App) Start() (err error) {
-	listener, err := net.Listen("tcp", ":9876")
-	if err != nil {
-		return
-	}
-	err = listener.(*net.TCPListener).SetDeadline(time.Now().Add(200 * time.Millisecond))
-	if err != nil {
-		return
-	}
-
-	log.Printf("Now listening on %s", listener.Addr().String())
-
-	go func() {
-		defer listener.Close()
-
-		for {
-			select {
-			case <-app.shutdown:
-				return
-			default:
-				// Do nothing
-			}
-
-			conn, err := listener.Accept()
-			if err != nil {
-				opErr, ok := err.(*net.OpError)
-				if ok && opErr.Timeout() {
-					continue
-				}
-
-				app.Error <- err
-				return
-			}
-
-			app.server.ServeConn(conn)
-		}
-	}()
-
+	err = app.server.Start()
 	return
 }
 
-func (app *App) Shutdown() {
-	app.shutdown <- true
-
-	close(app.shutdown)
-	close(app.Error)
+// Stop the server
+func (app *App) Stop() {
+	app.server.Stop()
+	return
 }
 
 func main() {
+	// Create the server instance
 	app, err := NewApp()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
+	// Start the server
 	err = app.Start()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	defer app.Shutdown()
 
-	log.Fatal(<-app.Error)
-}
+	log.Fatalf("Now listening on %s", app.server.Addr)
+	defer app.Stop()
 
-type Messages struct {
-	app *App
-}
-
-// Send a complete list of experience data to client.
-func (m *Messages) FullUpdate(_ struct{}, reply *[]Experience) (err error) {
-	*reply, err = m.app.db.GetAll()
-	return
-}
-
-// Update local data based on data from client.
-func (m *Messages) Push(xps []Experience, reply *bool) (err error) {
-	err = m.app.db.UpdateMany(xps)
-	if err != nil {
-		*reply = false
-	} else {
-		*reply = true
-	}
-	return
+	// Sleep forever
+	select {}
 }
