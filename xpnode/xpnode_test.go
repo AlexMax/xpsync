@@ -37,13 +37,10 @@ func TestUpdate(t *testing.T) {
 	dis.AddService("XPNodeService", app.server)
 	disClient := dis.NewServiceClient("XPNodeService", client)
 
-	// FIXME: This appears to work...
 	var xps = []Experience{
 		{Name: "AlexMax", Experience: 360000, Timestamp: 1500000000.0},
 	}
-	err = app.service.db.UpdateMany(xps)
 
-	// ...but this fails!
 	_, err = disClient.Call("Update", xps)
 	if !assert.NoError(t, err) {
 		t.FailNow()
